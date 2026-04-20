@@ -1,0 +1,74 @@
+version: "3.8"
+services:
+  db:
+    image: mysql:8.0-alpine
+    environment:
+      MYSQL_USER: ${MYSQL_USER:-neuro_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-neuro_pass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-neuro_db}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth_service:
+    build: ./services/auth_service
+    env_file: .env
+    ports:
+      - "8001:8000"
+    depends_on:
+      - db
+      - redis
+
+  products_service:
+    build: ./services/products_service
+    env_file: .env
+    ports:
+      - "8002:8000"
+    depends_on:
+      - db
+
+  reviews_service:
+    build: ./services/reviews_service
+    env_file: .env
+    ports:
+      - "8003:8000"
+    depends_on:
+      - db
+      - redis
+      - auth_service
+
+  ingestion_service:
+    build: ./services/ingestion_service
+    env_file: .env
+    ports:
+      - "8004:8000"
+    depends_on:
+      - db
+
+  ml_service:
+    build: ./services/ml_service
+    env_file: .env
+    ports:
+      - "8005:8000"
+    depends_on:
+      - redis
+
+volumes:
+  mysqldata:

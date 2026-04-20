@@ -1,0 +1,35 @@
+/
+├─ docker-compose.yml
+├─ .env.example
+├─ README.md
+├─ services/
+│  ├─ auth-service/
+│  │  ├─ app/
+│  │  │  ├─ main.py
+│  │  │  └─ schemas.py
+│  │  ├─ requirements.txt
+│  │  └─ Dockerfile
+│  ├─ products-service/
+│  │  ├─ app/
+│  │  │  ├─ main.py
+│  │  │  └─ schemas.py
+│  │  ├─ requirements.txt
+│  │  └─ Dockerfile
+│  ├─ reviews-service/
+│  │  ├─ app/
+│  │  │  ├─ main.py
+│  │  │  └─ schemas.py
+│  │  ├─ requirements.txt
+│  │  └─ Dockerfile
+│  ├─ ingestion-service/
+│  │  ├─ app/
+│  │  │  └─ main.py
+│  │  ├─ requirements.txt
+│  │  └─ Dockerfile
+│  └─ ml-service/
+│     ├─ app/
+│     │  └─ main.py
+│     ├─ requirements.txt
+│     └─ Dockerfile
+└─ shared/
+   └─ models.py
