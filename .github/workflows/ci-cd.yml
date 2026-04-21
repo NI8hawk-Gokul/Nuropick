@@ -1,0 +1,106 @@
+name: CI / Build & Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: neuro_user
+          POSTGRES_PASSWORD: neuro_pass
+          POSTGRES_DB: neuro_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U neuro_user" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -r services/auth_service/requirements.txt
+          pip install -r services/reviews_service/requirements.txt
+
+      - name: Wait for Postgres
+        run: |
+          until pg_isready -h localhost -p 5432 -U neuro_user; do sleep 1; done
+
+      - name: Run Alembic migrations (auth & reviews)
+        env:
+          DATABASE_URL: postgresql+asyncpg://neuro_user:neuro_pass@localhost:5432/neuro_db
+        run: |
+          alembic -c services/auth_service/alembic.ini upgrade head
+          alembic -c services/reviews_service/alembic.ini upgrade head
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://neuro_user:neuro_pass@localhost:5432/neuro_db
+        run: |
+          pytest -q
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # required for OIDC (optional)
+    strategy:
+      matrix:
+        service:
+          - auth_service
+          - products_service
+          - reviews_service
+          - ingestion_service
+          - ml_service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        # Option A: Use GitHub OIDC to assume role (recommended). Provide role ARN in secrets: AWS_ROLE_TO_ASSUME
+        # Option B: Use static credentials in secrets: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY and AWS_REGION
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME != '' }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Configure AWS creds (fallback to static keys)
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME == '' }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag and push image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_PREFIX }}-${{ matrix.service }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "Building service: ${{ matrix.service }}"
+          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} ./services/${{ matrix.service }}
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}

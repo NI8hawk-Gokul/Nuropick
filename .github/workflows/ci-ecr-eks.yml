@@ -1,0 +1,91 @@
+name: CI · Build, Push to ECR, Deploy to EKS (OIDC)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+  SERVICES: auth_service products_service reviews_service ingestion_service ml_service
+
+permissions:
+  contents: read
+  id-token: write    # required to request OIDC token
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build & push images
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_PREFIX: ${{ secrets.ECR_REPOSITORY_PREFIX }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          set -e
+          for svc in ${{ env.SERVICES }}; do
+            echo "Building $svc..."
+            IMAGE_NAME=${ECR_REGISTRY}/${ECR_PREFIX}-$svc:${IMAGE_TAG}
+            docker build -t ${IMAGE_NAME} ./services/${svc}
+            docker push ${IMAGE_NAME}
+            echo "Pushed ${IMAGE_NAME}"
+          done
+
+  deploy-to-eks:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install kubectl & helm
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Update kubeconfig for EKS cluster
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+        run: |
+          aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${AWS_REGION}
+
+      - name: Deploy Helm charts
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_PREFIX: ${{ secrets.ECR_REPOSITORY_PREFIX }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          set -e
+          # Example: install/upgrade per-service chart in ./charts/<service>
+          for svc in ${{ env.SERVICES }}; do
+            CHART_PATH="./charts/${svc}"
+            RELEASE_NAME="${svc}"
+            IMAGE_URI="${ECR_REGISTRY}/${ECR_PREFIX}-$svc:${IMAGE_TAG}"
+            echo "Deploying ${svc} -> image ${IMAGE_URI}"
+            helm upgrade --install ${RELEASE_NAME} ${CHART_PATH} \
+              --set image.repository=${IMAGE_URI} \
+              --wait --timeout 5m
+          done

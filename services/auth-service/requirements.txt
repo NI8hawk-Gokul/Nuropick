@@ -1,0 +1,8 @@
+fastapi==0.100.0
+uvicorn[standard]==0.22.0
+python-jose==3.3.0
+passlib[bcrypt]==1.7.5
+aiomysql==0.2.0
+pydantic==1.10.11
+SQLAlchemy==1.4.48
+alembic==1.11.1

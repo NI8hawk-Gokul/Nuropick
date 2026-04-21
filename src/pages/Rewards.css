@@ -1,0 +1,157 @@
+.rewards-container {
+    padding: 2rem 0 4rem;
+}
+
+.rewards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.reward-card {
+    background: #1a1a1a;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 240px;
+}
+
+.reward-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.reward-banner {
+    height: 120px;
+    background: #252525;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.reward-banner img.merchant-logo {
+    width: 50px;
+    height: 50px;
+    background: white;
+    padding: 8px;
+    border-radius: 50%;
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 2;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.reward-banner .banner-bg-icon {
+    font-size: 5rem;
+    opacity: 0.1;
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+}
+
+.reward-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    z-index: 2;
+}
+
+.badge-activating {
+    background: #4285F4;
+    color: white;
+}
+
+.badge-timeLeft {
+    background: #5f4b23;
+    color: #ff9800;
+}
+
+.badge-expired {
+    background: #333;
+    color: #888;
+}
+
+.reward-content {
+    padding: 1rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.reward-highlight {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.4rem;
+}
+
+.reward-subtext {
+    font-size: 0.75rem;
+    color: #aaa;
+    line-height: 1.3;
+    margin-bottom: 1rem;
+    flex-grow: 1;
+}
+
+.reward-card.expired {
+    filter: grayscale(1);
+    opacity: 0.8;
+}
+
+.reward-footer {
+    padding: 0 1rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.points-tag {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.redeem-btn-small {
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.redeem-btn-small:hover:not(:disabled) {
+    background: var(--primary);
+    color: white;
+}
+
+.redeem-btn-small:disabled {
+    border-color: #333;
+    color: #555;
+    cursor: not-allowed;
+}
+
+/* Custom illustration in banner */
+.reward-illustration {
+    width: 60%;
+    margin-top: 20px;
+    opacity: 0.9;
+}

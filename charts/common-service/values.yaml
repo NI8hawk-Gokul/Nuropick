@@ -1,0 +1,39 @@
+replicaCount: 2
+
+image:
+  repository: "REPLACE_WITH_ECR_IMAGE_URI"  # overridden by CI via --set image.repository
+  pullPolicy: IfNotPresent
+  tag: ""
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+env: {} # dict of env vars; secret values should be handled via Kubernetes Secrets
+
+ingress:
+  enabled: false
+  annotations: {}
+  hosts:
+    - host: chart.example.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
