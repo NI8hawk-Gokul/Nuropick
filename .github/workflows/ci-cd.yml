@@ -74,22 +74,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        # Option A: Use GitHub OIDC to assume role (recommended). Provide role ARN in secrets: AWS_ROLE_TO_ASSUME
-        # Option B: Use static credentials in secrets: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY and AWS_REGION
-        if: ${{ secrets.AWS_ROLE_TO_ASSUME != '' }}
+      - name: Configure AWS credentials via OIDC
+        if: ${{ secrets.AWS_ROLE_ARN != '' }}
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
 
       - name: Configure AWS creds (fallback to static keys)
-        if: ${{ secrets.AWS_ROLE_TO_ASSUME == '' }}
+        if: ${{ secrets.AWS_ROLE_ARN == '' }}
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ap-south-1
 
       - name: Login to ECR
         id: login-ecr

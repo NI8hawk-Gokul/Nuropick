@@ -24,8 +24,8 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -56,8 +56,8 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
 
       - name: Install kubectl & helm
         run: |
@@ -67,7 +67,7 @@ jobs:
 
       - name: Update kubeconfig for EKS cluster
         env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_REGION: ap-south-1
           EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
         run: |
           aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${AWS_REGION}
