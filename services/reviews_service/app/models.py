@@ -2,7 +2,6 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Column, String, Boolean, DateTime, Integer, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from .db import Base
@@ -15,7 +14,7 @@ class User(Base):
     """
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(String(36), primary_key=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     username = Column(String(150), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
@@ -27,9 +26,9 @@ class User(Base):
 class Review(Base):
     __tablename__ = "reviews"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     product_id = Column(String(100), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    user_id = Column(String(36), nullable=False, index=True)
     title = Column(String(300), nullable=True)
     body = Column(Text, nullable=False)
     rating = Column(Integer, nullable=False)
@@ -38,15 +37,19 @@ class Review(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     moderated_at = Column(DateTime, nullable=True)
 
+    # Relationship to admin actions
+    admin_actions = relationship("AdminAction", back_populates="review", cascade="all, delete-orphan")
+
 
 class AdminAction(Base):
     __tablename__ = "admin_actions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    admin_user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    review_id = Column(UUID(as_uuid=True), ForeignKey("reviews.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    admin_user_id = Column(String(36), nullable=False, index=True)
+    review_id = Column(String(36), ForeignKey("reviews.id", ondelete="CASCADE"), nullable=False)
     action_type = Column(String(50), nullable=False)  # 'approve' or 'reject'
     reason = Column(String(500), nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
-    review = relationship("Review", backref="admin_actions")
+    # Relationship back to review
+    review = relationship("Review", back_populates="admin_actions")
