@@ -1,5 +1,5 @@
-const { scrapeAmazonReviews, scrapeAmazonProductMetadata } = require('./amazonScraper');
-const { scrapeFlipkartReviews, scrapeFlipkartProductMetadata } = require('./flipkartScraper');
+const { scrapeAmazonReviews, scrapeAmazonProductMetadata, searchAmazonProducts } = require('./amazonScraper');
+const { scrapeFlipkartReviews, scrapeFlipkartProductMetadata, searchFlipkartProducts } = require('./flipkartScraper');
 const { analyzeSentimentWithGemini, detectFakeReviewWithGemini } = require('../geminiService');
 
 /**
@@ -176,6 +176,8 @@ module.exports = {
     scrapeAllSources,
     scrapeAmazonProductMetadata,
     scrapeFlipkartProductMetadata,
+    searchFlipkartProducts,
+    searchAmazonProducts,
     processScrapedReviews,
     normalizeReviews,
     deduplicateReviews

@@ -4,7 +4,7 @@ const { Op } = require('sequelize');
 const { authMiddleware } = require('../middleware/auth');
 const { summarizeReviewsWithGemini, generateBulkAIReviews } = require('../services/geminiService');
 const { extractUrl, cleanUrl } = require('../utils/urlHelper');
-const { scrapeAmazonProductMetadata, scrapeFlipkartProductMetadata, scrapeAllSources, processScrapedReviews, normalizeReviews, deduplicateReviews } = require('../services/scraper');
+const { scrapeAmazonProductMetadata, scrapeFlipkartProductMetadata, searchFlipkartProducts, searchAmazonProducts, scrapeAllSources, processScrapedReviews, normalizeReviews, deduplicateReviews } = require('../services/scraper');
 const { runProductScraping } = require('../services/scrapingService');
 const db = require('../models');
 const { Product, Review, ReviewSource, ScrapingJob, User, sequelize } = db;
@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
 
         const { count, rows: products } = await Product.findAndCountAll({
             where,
-            order: [[sequelize.literal(sortField), order]],
+            order: [[sortField, order]],
             limit: parseInt(limit),
             offset: skip,
             include: [{ model: User, as: 'creator', attributes: ['username'] }]
@@ -342,6 +342,19 @@ router.post('/analyze-url', authMiddleware, async (req, res) => {
             metadataResult = await scrapeAmazonProductMetadata(url);
             sources = ['amazon'];
         } else if (url.includes('flipkart.com')) {
+            // Check if it's a search URL
+            if (url.includes('/search')) {
+                console.log('🔍 Detected Flipkart search URL, resolving to first result...');
+                const searchParams = new URL(url).searchParams;
+                const query = searchParams.get('q');
+                if (query) {
+                    const searchResult = await searchFlipkartProducts(query, 1);
+                    if (searchResult.success && searchResult.results.length > 0) {
+                        url = searchResult.results[0].flipkartUrl;
+                        console.log(`✅ Resolved to: ${url}`);
+                    }
+                }
+            }
             metadataResult = await scrapeFlipkartProductMetadata(url);
             sources = ['flipkart', 'amazon']; // Try both if possible, but definitely flipkart
         } else {
@@ -569,6 +582,64 @@ router.post('/:id/scrape', authMiddleware, async (req, res) => {
     }
 });
 
+// @route   GET /api/products/search-external
+// @desc    Search for products on Amazon and Flipkart
+// @access  Private
+router.get('/search-external', authMiddleware, async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide a search query'
+            });
+        }
+
+        console.log(`🚀 Performing external search for: ${query}`);
+        
+        // Search both platforms in parallel
+        const [amazonResults, flipkartResults] = await Promise.all([
+            searchAmazonProducts(query, 5).catch(err => ({ success: false, results: [], error: err.message })),
+            searchFlipkartProducts(query, 5).catch(err => ({ success: false, results: [], error: err.message }))
+        ]);
+
+        const combinedResults = [
+            ...(amazonResults.success ? amazonResults.results : []),
+            ...(flipkartResults.success ? flipkartResults.results : [])
+        ];
+
+        res.json({
+            success: true,
+            results: combinedResults,
+            errors: {
+                amazon: amazonResults.error || null,
+                flipkart: flipkartResults.error || null
+            }
+        });
+    } catch (error) {
+        console.error('External search error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error performing external search',
+            error: error.message
+        });
+    }
+});
+
 // @route   GET /api/products/categories/list
+router.get('/categories/list', async (req, res) => {
+    try {
+        const categories = await Product.findAll({
+            attributes: [[sequelize.fn('DISTINCT', sequelize.col('category')), 'category']],
+            where: { isActive: true }
+        });
+        res.json({
+            success: true,
+            categories: categories.map(c => c.category).filter(Boolean)
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 module.exports = router;

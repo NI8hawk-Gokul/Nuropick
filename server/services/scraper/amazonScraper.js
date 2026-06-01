@@ -218,6 +218,57 @@ async function scrapeAmazonProductMetadata(productUrl) {
 }
 
 /**
+ * Search for products on Amazon
+ * @param {string} query - Search query
+ * @param {number} limit - Number of results to return
+ * @returns {Promise<Object>} Search results
+ */
+async function searchAmazonProducts(query, limit = 5) {
+    let browser;
+    try {
+        console.log(`🔍 Searching Amazon for: ${query}`);
+        browser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+
+        const page = await browser.newPage();
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+
+        const domain = 'amazon.in'; // Default to .in for this project
+        const searchUrl = `https://www.${domain}/s?k=${encodeURIComponent(query)}`;
+        await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+
+        const html = await page.content();
+        const $ = cheerio.load(html);
+        const results = [];
+
+        $('[data-component-type="s-search-result"]').each((i, el) => {
+            if (results.length >= limit) return;
+            
+            const $el = $(el);
+            const title = $el.find('h2 a span').text().trim();
+            const relativeUrl = $el.find('h2 a').attr('href');
+            const url = relativeUrl ? `https://www.${domain}${relativeUrl.split('/ref=')[0]}` : null;
+            const price = parseFloat($el.find('.a-price-whole').first().text().replace(/[^\d.]/g, '') || 0);
+            const imageUrl = $el.find('img.s-image').attr('src');
+
+            if (title && url) {
+                results.push({ name: title, amazonUrl: url, price, imageUrl, source: 'amazon' });
+            }
+        });
+
+        console.log(`✅ Found ${results.length} Amazon search results`);
+        return { success: true, results };
+    } catch (error) {
+        console.error('❌ Amazon search error:', error);
+        return { success: false, error: error.message };
+    } finally {
+        if (browser) await browser.close();
+    }
+}
+
+/**
  * Extract product ASIN from Amazon URL
  * @param {string} url - Amazon product URL
  * @returns {string|null} ASIN or null
@@ -225,7 +276,6 @@ async function scrapeAmazonProductMetadata(productUrl) {
 function extractASIN(url) {
     if (!url) return null;
     const asinMatch = url.match(/\/dp\/([A-Z0-9]{10})|\/gp\/product\/([A-Z0-9]{10})|\/product\/([A-Z0-9]{10})|([A-Z0-9]{10})/i);
-    // Be careful with the 4th group as it might match other garbage, so prioritize the first three
     if (asinMatch) {
         return asinMatch[1] || asinMatch[2] || asinMatch[3] || (asinMatch[0].length === 10 ? asinMatch[0] : null);
     }
@@ -235,5 +285,6 @@ function extractASIN(url) {
 module.exports = {
     scrapeAmazonReviews,
     scrapeAmazonProductMetadata,
-    extractASIN
+    extractASIN,
+    searchAmazonProducts
 };

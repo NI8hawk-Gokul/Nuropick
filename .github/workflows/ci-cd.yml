@@ -62,6 +62,8 @@ jobs:
     permissions:
       contents: read
       id-token: write   # required for OIDC (optional)
+    env:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
     strategy:
       matrix:
         service:
@@ -74,24 +76,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ✅ OIDC (Recommended)
       - name: Configure AWS credentials via OIDC
-        if: ${{ secrets.AWS_ROLE_ARN != '' }}
+        if: env.AWS_ROLE_TO_ASSUME != ''
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
           aws-region: ap-south-1
 
-      - name: Configure AWS creds (fallback to static keys)
-        if: ${{ secrets.AWS_ROLE_ARN == '' }}
+      # ✅ Fallback (Static Keys)
+      - name: Configure AWS credentials (static keys)
+        if: env.AWS_ROLE_TO_ASSUME == ''
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      - name: Login to ECR
+      # ✅ Login to ECR
+      - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag and push image
         env:

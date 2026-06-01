@@ -77,6 +77,7 @@ export const productsAPI = {
     delete: (id) => api.delete(`/products/${id}`),
     getCategories: () => api.get('/products/categories/list'),
     analyzeUrl: (url) => api.post('/products/analyze-url', { url }),
+    searchExternal: (query) => api.get('/products/search-external', { params: { query } }),
     scrape: (id) => api.post(`/products/${id}/scrape`)
 };
 

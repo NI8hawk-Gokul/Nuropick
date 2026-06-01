@@ -79,8 +79,13 @@ const Product = sequelize.define('Product', {
         allowNull: true,
         field: 'ai_pros',
         get() {
-            const val = this.getDataValue('aiPros');
-            return val ? JSON.parse(val) : [];
+            try {
+                const val = this.getDataValue('aiPros');
+                return val ? (typeof val === 'string' ? JSON.parse(val) : val) : [];
+            } catch (e) {
+                console.error('Error parsing aiPros:', e.message);
+                return [];
+            }
         },
         set(val) {
             this.setDataValue('aiPros', JSON.stringify(val));
@@ -91,8 +96,13 @@ const Product = sequelize.define('Product', {
         allowNull: true,
         field: 'ai_cons',
         get() {
-            const val = this.getDataValue('aiCons');
-            return val ? JSON.parse(val) : [];
+            try {
+                const val = this.getDataValue('aiCons');
+                return val ? (typeof val === 'string' ? JSON.parse(val) : val) : [];
+            } catch (e) {
+                console.error('Error parsing aiCons:', e.message);
+                return [];
+            }
         },
         set(val) {
             this.setDataValue('aiCons', JSON.stringify(val));
@@ -103,8 +113,13 @@ const Product = sequelize.define('Product', {
         allowNull: true,
         field: 'ai_key_phrases',
         get() {
-            const val = this.getDataValue('aiKeyPhrases');
-            return val ? JSON.parse(val) : [];
+            try {
+                const val = this.getDataValue('aiKeyPhrases');
+                return val ? (typeof val === 'string' ? JSON.parse(val) : val) : [];
+            } catch (e) {
+                console.error('Error parsing aiKeyPhrases:', e.message);
+                return [];
+            }
         },
         set(val) {
             this.setDataValue('aiKeyPhrases', JSON.stringify(val));

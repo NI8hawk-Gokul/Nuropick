@@ -22,6 +22,8 @@ const Products = () => {
     total: 0,
     pages: 0
   });
+  const [externalResults, setExternalResults] = useState([]);
+  const [searchingExternal, setSearchingExternal] = useState(false);
 
   const categories = [
     'all',
@@ -99,8 +101,18 @@ const Products = () => {
           total: response.pagination?.total || 0,
           pages: response.pagination?.pages || 0
         }));
+
+        // If no local products found and we have a search query, try external search
+        if (response.products.length === 0 && filters.search && !filters.search.startsWith('http')) {
+          handleExternalSearch(filters.search);
+        } else {
+          setExternalResults([]);
+        }
       } else {
         setProducts([]);
+        if (filters.search && !filters.search.startsWith('http')) {
+          handleExternalSearch(filters.search);
+        }
       }
       setError('');
     } catch (err) {
@@ -108,6 +120,20 @@ const Products = () => {
       console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExternalSearch = async (query) => {
+    try {
+      setSearchingExternal(true);
+      const response = await productsAPI.searchExternal(query);
+      if (response.success) {
+        setExternalResults(response.results);
+      }
+    } catch (err) {
+      console.error('External search error:', err);
+    } finally {
+      setSearchingExternal(false);
     }
   };
 
@@ -224,40 +250,80 @@ const Products = () => {
         ) : products.length === 0 ? (
           <div className="empty-state">
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
-            <h3>No products found{filters.search ? ` for "${filters.search}"` : ''}</h3>
-            <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
-              This product isn't in our database yet. Add it by pasting its Amazon or Flipkart URL below.
-            </p>
-            {analyzing ? (
-              <div className="loading-container" style={{ minHeight: 'auto', padding: '1rem' }}>
+            <h3>No products found{filters.search ? ` in our database for "${filters.search}"` : ''}</h3>
+            
+            {searchingExternal ? (
+              <div className="loading-container" style={{ minHeight: 'auto', padding: '2rem' }}>
                 <div className="spinner"></div>
-                <p style={{ marginTop: '1rem' }}>🤖 Analyzing product and generating AI insights...</p>
+                <p>Searching Amazon & Flipkart for "{filters.search}"...</p>
+              </div>
+            ) : externalResults.length > 0 ? (
+              <div className="external-results-container">
+                <p className="external-results-hint">
+                  Found these results on Amazon & Flipkart. Click one to add it to NeuroPick for AI analysis:
+                </p>
+                <div className="products-grid external">
+                  {externalResults.map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      className="product-card glass-card external-card"
+                      onClick={() => handleUrlSearch(item.amazonUrl || item.flipkartUrl)}
+                    >
+                      <div className="product-image">
+                        <img src={item.imageUrl} alt={item.name} />
+                        <span className="product-category badge">
+                          {item.source === 'amazon' ? 'Amazon' : 'Flipkart'}
+                        </span>
+                      </div>
+                      <div className="product-info">
+                        <h3 className="product-name">{item.name}</h3>
+                        <p className="product-price">INR {item.price}</p>
+                        <button className="btn btn-outline btn-sm">✨ Analyze This</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const url = e.target.productUrl.value.trim();
-                  if (url) handleUrlSearch(url);
-                }}
-                style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '520px', margin: '0 auto' }}
-              >
-                <input
-                  name="productUrl"
-                  type="url"
-                  className="search-input"
-                  placeholder="https://www.amazon.in/... or https://www.flipkart.com/..."
-                  defaultValue={filters.search?.startsWith('http') ? filters.search : ''}
-                  style={{ width: '100%' }}
-                  required
-                />
-                <button type="submit" className="btn btn-primary">
-                  ✨ Analyze & Add Product
-                </button>
-                <p style={{ opacity: 0.5, fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                  Supports Amazon.in and Flipkart URLs. AI summary will be generated automatically.
-                </p>
-              </form>
+              <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
+                This product isn't in our database yet. Add it by pasting its Amazon or Flipkart URL below.
+              </p>
+            )}
+
+            {!searchingExternal && externalResults.length === 0 && (
+              <>
+                {analyzing ? (
+                  <div className="loading-container" style={{ minHeight: 'auto', padding: '1rem' }}>
+                    <div className="spinner"></div>
+                    <p style={{ marginTop: '1rem' }}>🤖 Analyzing product and generating AI insights...</p>
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const url = e.target.productUrl.value.trim();
+                      if (url) handleUrlSearch(url);
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '520px', margin: '0 auto' }}
+                  >
+                    <input
+                      name="productUrl"
+                      type="url"
+                      className="search-input"
+                      placeholder="https://www.amazon.in/... or https://www.flipkart.com/..."
+                      defaultValue={filters.search?.startsWith('http') ? filters.search : ''}
+                      style={{ width: '100%' }}
+                      required
+                    />
+                    <button type="submit" className="btn btn-primary">
+                      ✨ Analyze & Add Product
+                    </button>
+                    <p style={{ opacity: 0.5, fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                      Supports Amazon.in and Flipkart URLs. AI summary will be generated automatically.
+                    </p>
+                  </form>
+                )}
+              </>
             )}
             {error && <p style={{ color: 'var(--error)', marginTop: '1rem' }}>{error}</p>}
           </div>
