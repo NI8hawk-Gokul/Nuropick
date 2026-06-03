@@ -1,4 +1,6 @@
+import sys
 import os
+sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
 from logging.config import fileConfig
 from sqlalchemy import pool
 from alembic import context
@@ -31,9 +33,12 @@ elif DATABASE_URL.startswith("mysql+aiomysql://"):
 
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
-# Import target metadata from package
+# Import target metadata from package dynamically depending on execution path
 try:
-    from services.auth_service.app.models import Base
+    try:
+        from app.models import Base
+    except ModuleNotFoundError:
+        from services.auth_service.app.models import Base
     target_metadata = Base.metadata
 except Exception as e:
     raise RuntimeError("Failed to import auth_service models. Ensure package path is correct.") from e
