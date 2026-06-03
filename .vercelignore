@@ -1,0 +1,14 @@
+services/
+server/
+database/
+charts/
+aws/
+node_modules/
+dist/
+build/
+.git/
+.github/
+run_docker_*.bat
+server_run_output.txt
+Dockerfile
+.dockerignore

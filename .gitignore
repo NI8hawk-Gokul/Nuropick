@@ -43,3 +43,5 @@ tmp/
 
 # Docker Helpers
 run_docker_*.bat
+
+.vercel
