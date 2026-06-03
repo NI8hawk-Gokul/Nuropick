@@ -1,14 +1,14 @@
 version: "3.8"
 services:
   db:
-    image: mysql:8.0-alpine
+    image: mysql:8.0
     environment:
       MYSQL_USER: ${MYSQL_USER:-neuro_user}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-neuro_pass}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-neuro_db}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_pass}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysqldata:/var/lib/mysql
     healthcheck:

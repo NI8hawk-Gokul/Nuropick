@@ -47,8 +47,8 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://neuro_user:neuro_pass@localhost:5432/neuro_db
         run: |
-          alembic -c services/auth_service/alembic.ini upgrade head
-          alembic -c services/reviews_service/alembic.ini upgrade head
+          cd services/auth_service && alembic upgrade head && cd ../..
+          cd services/reviews_service && alembic upgrade head && cd ../..
 
       - name: Run tests
         env:
