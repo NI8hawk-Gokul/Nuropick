@@ -157,7 +157,18 @@ const ProductDetail = () => {
           <div className="product-image-section">
             <div className="product-image-container">
               {product.imageUrl ? (
-                <img src={product.imageUrl} alt={product.name} />
+                <>
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name} 
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      const placeholder = e.target.parentElement.querySelector('.product-placeholder');
+                      if (placeholder) placeholder.style.display = 'flex';
+                    }}
+                  />
+                  <div className="product-placeholder" style={{ display: 'none' }}>📦</div>
+                </>
               ) : (
                 <div className="product-placeholder">📦</div>
               )}

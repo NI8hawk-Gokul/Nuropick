@@ -6,10 +6,28 @@ from alembic import context
 config = context.config
 fileConfig(config.config_file_name)
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    f"postgresql+asyncpg://{os.getenv('POSTGRES_USER','neuro_user')}:{os.getenv('POSTGRES_PASSWORD','neuro_pass')}@{os.getenv('POSTGRES_HOST','db')}:{os.getenv('POSTGRES_PORT','5432')}/{os.getenv('POSTGRES_DB','neuro_db')}"
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    if os.getenv("POSTGRES_HOST") or os.getenv("POSTGRES_DB"):
+        user = os.getenv("POSTGRES_USER", "neuro_user")
+        password = os.getenv("POSTGRES_PASSWORD", "neuro_pass")
+        host = os.getenv("POSTGRES_HOST", "db")
+        port = os.getenv("POSTGRES_PORT", "5432")
+        db = os.getenv("POSTGRES_DB", "neuro_db")
+        DATABASE_URL = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db}"
+    else:
+        user = os.getenv("MYSQL_USER", "neuro_user")
+        password = os.getenv("MYSQL_PASSWORD", "neuro_pass")
+        host = os.getenv("MYSQL_HOST", "db")
+        port = os.getenv("MYSQL_PORT", "3306")
+        db = os.getenv("MYSQL_DATABASE", "neuro_db")
+        DATABASE_URL = f"mysql+aiomysql://{user}:{password}@{host}:{port}/{db}"
+
+# Convert async driver scheme to sync driver scheme for Alembic migration connection
+if DATABASE_URL.startswith("postgresql+asyncpg://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+elif DATABASE_URL.startswith("mysql+aiomysql://"):
+    DATABASE_URL = DATABASE_URL.replace("mysql+aiomysql://", "mysql+pymysql://")
 
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 

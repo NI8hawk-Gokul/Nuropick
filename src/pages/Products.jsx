@@ -270,7 +270,22 @@ const Products = () => {
                       onClick={() => handleUrlSearch(item.amazonUrl || item.flipkartUrl)}
                     >
                       <div className="product-image">
-                        <img src={item.imageUrl} alt={item.name} />
+                        {item.imageUrl ? (
+                          <>
+                            <img 
+                              src={item.imageUrl} 
+                              alt={item.name} 
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                const placeholder = e.target.parentElement.querySelector('.product-placeholder');
+                                if (placeholder) placeholder.style.display = 'flex';
+                              }}
+                            />
+                            <div className="product-placeholder" style={{ display: 'none' }}>📦</div>
+                          </>
+                        ) : (
+                          <div className="product-placeholder">📦</div>
+                        )}
                         <span className="product-category badge">
                           {item.source === 'amazon' ? 'Amazon' : 'Flipkart'}
                         </span>
@@ -338,7 +353,18 @@ const Products = () => {
                 >
                   <div className="product-image">
                     {product.imageUrl ? (
-                      <img src={product.imageUrl} alt={product.name} />
+                      <>
+                        <img 
+                          src={product.imageUrl} 
+                          alt={product.name} 
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            const placeholder = e.target.parentElement.querySelector('.product-placeholder');
+                            if (placeholder) placeholder.style.display = 'flex';
+                          }}
+                        />
+                        <div className="product-placeholder" style={{ display: 'none' }}>📦</div>
+                      </>
                     ) : (
                       <div className="product-placeholder">📦</div>
                     )}

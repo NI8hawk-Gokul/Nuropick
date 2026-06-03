@@ -192,11 +192,21 @@ const Dashboard = () => {
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                   {/* Product image */}
                   {review.product?.imageUrl ? (
-                    <img
-                      src={review.product.imageUrl}
-                      alt={review.product?.name}
-                      style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0, background: 'var(--bg-tertiary)' }}
-                    />
+                    <>
+                      <img
+                        src={review.product.imageUrl}
+                        alt={review.product?.name}
+                        style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0, background: 'var(--bg-tertiary)' }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          const placeholder = e.target.parentElement.querySelector('.product-placeholder-dashboard');
+                          if (placeholder) placeholder.style.display = 'flex';
+                        }}
+                      />
+                      <div className="product-placeholder-dashboard" style={{ display: 'none', width: 60, height: 60, borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
+                        📦
+                      </div>
+                    </>
                   ) : (
                     <div style={{ width: 60, height: 60, borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
                       📦

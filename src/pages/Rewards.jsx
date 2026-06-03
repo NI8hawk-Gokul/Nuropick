@@ -149,7 +149,12 @@ const Rewards = () => {
                   <div key={reward.id} className={`reward-card ${isExpired ? 'expired' : ''}`}>
                     <div className="reward-banner" style={{ borderBottom: `2px solid ${reward.themeColor || '#333'}` }}>
                       {reward.merchantLogo && (
-                        <img src={reward.merchantLogo} alt={reward.merchantName} className="merchant-logo" />
+                        <img 
+                          src={reward.merchantLogo} 
+                          alt={reward.merchantName} 
+                          className="merchant-logo" 
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
                       )}
                       <div className="banner-bg-icon">
                         {getRewardIcon(reward.merchantName || reward.name)}

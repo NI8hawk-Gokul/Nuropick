@@ -48,5 +48,8 @@
     "@vitejs/plugin-react": "^4.2.1",
     "concurrently": "^8.2.2",
     "vite": "^5.0.8"
+  },
+  "overrides": {
+    "yargs": "^18.0.0"
   }
 }

@@ -322,7 +322,19 @@ const WriteReview = () => {
                           onMouseDown={(e) => { e.preventDefault(); handleSelectProduct(p); }}
                         >
                           {p.imageUrl ? (
-                            <img src={p.imageUrl} alt={p.name} className="product-thumb" />
+                            <>
+                              <img 
+                                src={p.imageUrl} 
+                                alt={p.name} 
+                                className="product-thumb" 
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  const placeholder = e.target.parentElement.querySelector('.product-thumb-placeholder');
+                                  if (placeholder) placeholder.style.display = 'flex';
+                                }}
+                              />
+                              <div className="product-thumb-placeholder" style={{ display: 'none' }}>📦</div>
+                            </>
                           ) : (
                             <div className="product-thumb-placeholder">📦</div>
                           )}
@@ -404,7 +416,19 @@ const WriteReview = () => {
                 <div className="product-selection-preview glass-card fade-in">
                   <div className="preview-image-wrapper">
                     {selectedProduct.imageUrl ? (
-                      <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="product-preview-img" />
+                      <>
+                        <img 
+                          src={selectedProduct.imageUrl} 
+                          alt={selectedProduct.name} 
+                          className="product-preview-img" 
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            const placeholder = e.target.parentElement.querySelector('.product-preview-placeholder');
+                            if (placeholder) placeholder.style.display = 'flex';
+                          }}
+                        />
+                        <div className="product-preview-placeholder" style={{ display: 'none' }}>📦</div>
+                      </>
                     ) : (
                       <div className="product-preview-placeholder">📦</div>
                     )}
