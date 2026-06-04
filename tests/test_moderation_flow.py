@@ -21,21 +21,21 @@ def _load_app_from_path(module_path: pathlib.Path, attr="app"):
 async def test_moderation_and_audit(run_migrations):
     # ensure services pick DATABASE_URL from env
     # Load auth app and reviews app from file paths
-    auth_main = HERE / "services" / "auth-service" / "app" / "main.py"
-    reviews_main = HERE / "services" / "reviews-service" / "app" / "main.py"
+    auth_main = HERE / "services" / "auth_service" / "app" / "main.py"
+    reviews_main = HERE / "services" / "reviews_service" / "app" / "main.py"
 
     auth_app = _load_app_from_path(auth_main)
     reviews_app = _load_app_from_path(reviews_main)
 
     async with AsyncClient(app=auth_app, base_url="http://testserver") as auth_client, AsyncClient(app=reviews_app, base_url="http://testserver") as reviews_client:
         # 1) seed admin by creating user via auth's create_user function directly (import)
-        crud_path = HERE / "services" / "auth-service" / "app" / "crud.py"
+        crud_path = HERE / "services" / "auth_service" / "app" / "crud.py"
         spec = importlib.util.spec_from_file_location("auth_crud", str(crud_path))
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         create_user = mod.create_user
 
-        db_path = HERE / "services" / "auth-service" / "app" / "db.py"
+        db_path = HERE / "services" / "auth_service" / "app" / "db.py"
         spec2 = importlib.util.spec_from_file_location("auth_db", str(db_path))
         mod2 = importlib.util.module_from_spec(spec2)
         spec2.loader.exec_module(mod2)

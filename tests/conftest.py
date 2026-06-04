@@ -51,8 +51,8 @@ def run_migrations(database_urls, tmp_path_factory):
     db_url = database_urls["database_url"]
     # Run alembic for auth-service and reviews-service using their alembic.ini
     here = pathlib.Path(__file__).resolve().parents[1]
-    auth_alembic = str(here / "services" / "auth-service" / "alembic.ini")
-    reviews_alembic = str(here / "services" / "reviews-service" / "alembic.ini")
+    auth_alembic = str(here / "services" / "auth_service" / "alembic.ini")
+    reviews_alembic = str(here / "services" / "reviews_service" / "alembic.ini")
 
     _run_alembic(auth_alembic, db_url.replace("asyncpg://", "psycopg2://").replace("+asyncpg", ""))
     _run_alembic(reviews_alembic, db_url.replace("asyncpg://", "psycopg2://").replace("+asyncpg", ""))
