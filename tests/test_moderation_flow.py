@@ -73,26 +73,25 @@ async def test_moderation_and_audit(run_migrations):
             "body": "This product broke after a day",
             "rating": 1
         }
-        r2 = await reviews_client.post(f"/products/{product_id}/reviews", json=review_payload)
+        r2 = await reviews_client.post(f"/reviews?product_id={product_id}", json=review_payload)
         assert r2.status_code == 201
         created = r2.json()
         review_id = created["id"]
 
         # 5) admin lists pending reviews
-        r3 = await reviews_client.get("/moderation/reviews", headers=headers)
+        r3 = await reviews_client.get("/reviews?approved_only=false", headers=headers)
         assert r3.status_code == 200
         pend = r3.json()
         assert any(str(x["id"]) == review_id for x in pend)
 
         # 6) admin approves the review
-        r4 = await reviews_client.post(f"/moderation/reviews/{review_id}/approve", headers=headers)
+        r4 = await reviews_client.post(f"/reviews/{review_id}/approve", json={"reason": "Approved by test"}, headers=headers)
         assert r4.status_code == 200
-        action = r4.json()
-        assert action["action_type"] == "approve"
-        assert action["review_id"] == review_id
+        review_approved = r4.json()
+        assert review_approved["is_approved"] is True
 
         # 7) audit listing: fetch admin actions
         r5 = await reviews_client.get("/admin/actions", headers=headers)
         assert r5.status_code == 200
         actions = r5.json()
-        assert any(a["id"] == action["id"] for a in actions)
+        assert any(str(a["review_id"]) == review_id for a in actions)
