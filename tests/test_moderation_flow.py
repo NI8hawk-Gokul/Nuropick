@@ -10,38 +10,40 @@ from httpx import AsyncClient
 
 HERE = pathlib.Path(__file__).resolve().parents[1]
 
-def _load_app_from_path(module_path: pathlib.Path, attr="app"):
-    spec = importlib.util.spec_from_file_location("tmp_module", str(module_path))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return getattr(mod, attr)
+def load_auth_service():
+    for k in list(sys.modules.keys()):
+        if k == 'app' or k.startswith('app.'):
+            del sys.modules[k]
+    auth_path = str(HERE / "services" / "auth_service")
+    sys.path.insert(0, auth_path)
+    try:
+        from app.main import app as auth_app
+        from app.crud import create_user
+        from app.db import AsyncSessionLocal
+        return auth_app, create_user, AsyncSessionLocal
+    finally:
+        sys.path.remove(auth_path)
+
+def load_reviews_service():
+    for k in list(sys.modules.keys()):
+        if k == 'app' or k.startswith('app.'):
+            del sys.modules[k]
+    reviews_path = str(HERE / "services" / "reviews_service")
+    sys.path.insert(0, reviews_path)
+    try:
+        from app.main import app as reviews_app
+        return reviews_app
+    finally:
+        sys.path.remove(reviews_path)
 
 
 @pytest.mark.asyncio
 async def test_moderation_and_audit(run_migrations):
-    # ensure services pick DATABASE_URL from env
-    # Load auth app and reviews app from file paths
-    auth_main = HERE / "services" / "auth_service" / "app" / "main.py"
-    reviews_main = HERE / "services" / "reviews_service" / "app" / "main.py"
-
-    auth_app = _load_app_from_path(auth_main)
-    reviews_app = _load_app_from_path(reviews_main)
+    # Load service apps and db objects
+    auth_app, create_user, AsyncSessionLocal = load_auth_service()
+    reviews_app = load_reviews_service()
 
     async with AsyncClient(app=auth_app, base_url="http://testserver") as auth_client, AsyncClient(app=reviews_app, base_url="http://testserver") as reviews_client:
-        # 1) seed admin by creating user via auth's create_user function directly (import)
-        crud_path = HERE / "services" / "auth_service" / "app" / "crud.py"
-        spec = importlib.util.spec_from_file_location("auth_crud", str(crud_path))
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        create_user = mod.create_user
-
-        db_path = HERE / "services" / "auth_service" / "app" / "db.py"
-        spec2 = importlib.util.spec_from_file_location("auth_db", str(db_path))
-        mod2 = importlib.util.module_from_spec(spec2)
-        spec2.loader.exec_module(mod2)
-        AsyncSessionLocal = mod2.AsyncSessionLocal
-
-        # create admin user
         async with AsyncSessionLocal() as session:
             admin_in = type("U", (), {"email": "admin@test", "username": "admin", "password": "adminpass"})
             admin = await create_user(session, admin_in, role="admin")
