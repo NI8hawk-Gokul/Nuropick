@@ -26,24 +26,21 @@ def event_loop():
 
 
 @pytest.fixture(scope="session")
-def postgres_container():
-    with PostgresContainer("postgres:15-alpine") as pg:
-        # ensure container has started
-        time.sleep(1)
-        yield pg
-
-
-@pytest.fixture(scope="session")
-def database_urls(postgres_container):
-    db_url = postgres_container.get_connection_url().replace("postgresql://", "postgresql+asyncpg://")
-    # set env vars for services to pick up
-    os.environ["DATABASE_URL"] = db_url
-    os.environ["POSTGRES_USER"] = postgres_container.USER
-    os.environ["POSTGRES_PASSWORD"] = postgres_container.PASSWORD
-    os.environ["POSTGRES_DB"] = postgres_container.DBNAME
-    os.environ["POSTGRES_HOST"] = postgres_container.get_container_host_ip()
-    os.environ["POSTGRES_PORT"] = str(postgres_container.get_exposed_port(5432))
-    return {"database_url": db_url}
+def database_urls():
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        yield {"database_url": db_url}
+    else:
+        with PostgresContainer("postgres:15-alpine") as pg:
+            time.sleep(1)
+            db_url = pg.get_connection_url().replace("postgresql://", "postgresql+asyncpg://")
+            os.environ["DATABASE_URL"] = db_url
+            os.environ["POSTGRES_USER"] = pg.USER
+            os.environ["POSTGRES_PASSWORD"] = pg.PASSWORD
+            os.environ["POSTGRES_DB"] = pg.DBNAME
+            os.environ["POSTGRES_HOST"] = pg.get_container_host_ip()
+            os.environ["POSTGRES_PORT"] = str(pg.get_exposed_port(5432))
+            yield {"database_url": db_url}
 
 
 @pytest.fixture(scope="session")
