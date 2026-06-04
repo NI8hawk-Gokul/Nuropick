@@ -13,9 +13,15 @@ from alembic import command
 
 
 def _run_alembic(alembic_ini_path: str, db_url: str):
-    cfg = Config(alembic_ini_path)
-    cfg.set_main_option("sqlalchemy.url", db_url)
-    command.upgrade(cfg, "head")
+    old_cwd = os.getcwd()
+    ini_dir = os.path.dirname(alembic_ini_path)
+    os.chdir(ini_dir)
+    try:
+        cfg = Config(os.path.basename(alembic_ini_path))
+        cfg.set_main_option("sqlalchemy.url", db_url)
+        command.upgrade(cfg, "head")
+    finally:
+        os.chdir(old_cwd)
 
 
 @pytest.fixture(scope="session")
@@ -35,9 +41,12 @@ def database_urls():
             time.sleep(1)
             db_url = pg.get_connection_url().replace("postgresql://", "postgresql+asyncpg://")
             os.environ["DATABASE_URL"] = db_url
-            os.environ["POSTGRES_USER"] = pg.USER
-            os.environ["POSTGRES_PASSWORD"] = pg.PASSWORD
-            os.environ["POSTGRES_DB"] = pg.DBNAME
+            user = getattr(pg, "USER", getattr(pg, "username", "test"))
+            password = getattr(pg, "PASSWORD", getattr(pg, "password", "test"))
+            dbname = getattr(pg, "DBNAME", getattr(pg, "dbname", "test"))
+            os.environ["POSTGRES_USER"] = user
+            os.environ["POSTGRES_PASSWORD"] = password
+            os.environ["POSTGRES_DB"] = dbname
             os.environ["POSTGRES_HOST"] = pg.get_container_host_ip()
             os.environ["POSTGRES_PORT"] = str(pg.get_exposed_port(5432))
             yield {"database_url": db_url}
